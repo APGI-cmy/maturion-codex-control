@@ -1,6 +1,6 @@
 ---
 id: ECOSYSTEM_VOCABULARY
-version: 1.1.0
+version: 1.2.0
 status: canonical
 authority: CS2
 canonical_home: APGI-cmy/maturion-codex-control
@@ -53,6 +53,9 @@ wave           schedule      supervise
 initiate       invoke        dispatch
 assign         direct        govern
 align-wave     multi-task    batch
+design         triage        prioritize
+track          monitor       onboard
+handoff        transition
 
 IMPLEMENTATION VERB SET → MODE:GUARD
 ──────────────────────────────────────
@@ -61,6 +64,8 @@ write          code          develop
 migrate        scaffold      generate
 refactor       fix-code      patch-code
 deploy         install       configure-code
+debug          fix           troubleshoot
+update         upgrade       patch
 
 EVALUATION VERB SET → MODE:QP
 ───────────────────────────────
@@ -69,7 +74,36 @@ inspect        audit         verify
 check          validate      examine
 quality-check  QA            test-review
 proof-check    pre-handover  handover-verify
+summarize      document      analyze
+analyse        compare       critique
 ```
+
+### 2.2a Common-Verb Synonyms (Quick Reference)
+
+The following common workplace verbs are pre-classified to prevent unnecessary
+VOCAB_RELOAD_PROTOCOL halts. Use this table before concluding a verb is unknown.
+
+| Verb | Canonical synonym | Mode |
+|---|---|---|
+| `design` | plan | `MODE:POLC` |
+| `triage` | prioritize | `MODE:POLC` |
+| `prioritize` | manage | `MODE:POLC` |
+| `track` | monitor | `MODE:POLC` |
+| `onboard` | coordinate | `MODE:POLC` |
+| `transition` | handoff | `MODE:POLC` |
+| `report` | summarize | `MODE:QP` |
+| `debug` | troubleshoot | `MODE:GUARD` |
+| `troubleshoot` | fix-code | `MODE:GUARD` |
+| `fix` | fix-code | `MODE:GUARD` |
+| `update` | patch-code | `MODE:GUARD` |
+| `upgrade` | patch-code | `MODE:GUARD` |
+| `patch` | patch-code | `MODE:GUARD` |
+| `summarize` | evaluate | `MODE:QP` |
+| `document` | analyze | `MODE:QP` |
+| `analyze` | evaluate | `MODE:QP` |
+| `analyse` | evaluate | `MODE:QP` |
+| `compare` | validate | `MODE:QP` |
+| `critique` | review | `MODE:QP` |
 
 ### 2.3 Ambiguous / Mixed Verb Handling
 
@@ -83,7 +117,7 @@ If a task contains verbs from **more than one set**, Foreman must:
 
 If the task verb is **not listed** in any set:
 - HALT. Do not proceed.
-- Escalate to CS2: "Unknown verb: [verb]. ECOSYSTEM_VOCABULARY v1.1.0 does not classify this verb. Request vocabulary extension."
+- Escalate to CS2: "Unknown verb: [verb]. ECOSYSTEM_VOCABULARY (current version, see version field in YAML frontmatter) does not classify this verb. Request vocabulary extension."
 - Record the gap in session memory under `vocab_gap_log`.
 
 ---
@@ -171,9 +205,16 @@ Foreman **must** declare which POLC stage is active at every step in session mem
 
 | Tier | Name | Location | Content |
 |---|---|---|---|
-| Tier 1 | Canon | `governance/canon/` | Authoritative governance artifacts. Immutable without CS2 approval. |
+| Tier 1 | Canon | Root `governance/` directory (e.g. `governance/TIER_0_CANON_MANIFEST.json`, `governance/CONSTITUTION.md`, `governance/ECOSYSTEM_VOCABULARY.md`) and `governance/canon/` sub-folder for additional canon files | Authoritative governance artifacts. Immutable without CS2 approval. |
 | Tier 2 | Agent Knowledge | `.agent-workspace/<agent-id>/knowledge/` | Agent-specific working knowledge, indexes, and cross-references. |
 | Tier 3 | Session Memory | `.agent-workspace/<agent-id>/memory/` | Session-specific evidence, PREHANDOVER proofs, RCAs. |
+
+> **Note on Tier 1 layout**: The primary Tier 1 root files (`TIER_0_CANON_MANIFEST.json`,
+> `CONSTITUTION.md`, `ECOSYSTEM_VOCABULARY.md`) live directly under `governance/`.
+> Additional canon artifacts are stored under `governance/canon/`. The agent contract's
+> `governance:` YAML block (`tier_0_manifest: governance/TIER_0_CANON_MANIFEST.json`)
+> references the root-level manifest; that manifest enumerates all canon files in both
+> locations.
 
 Every agent must:
 - Verify Tier 1 documents exist and match CANON_INVENTORY hashes during Phase 1 Preflight.
@@ -227,4 +268,4 @@ VOCAB_RELOAD_PROTOCOL
 
 ---
 
-*End of ECOSYSTEM_VOCABULARY v1.1.0 — Authority: CS2 | Canonical Home: APGI-cmy/maturion-codex-control*
+*End of ECOSYSTEM_VOCABULARY v1.2.0 — Authority: CS2 | Canonical Home: APGI-cmy/maturion-codex-control*
