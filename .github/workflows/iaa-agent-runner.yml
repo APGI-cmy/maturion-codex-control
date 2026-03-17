@@ -1,0 +1,94 @@
+name: IAA Agent Runner (Reusable)
+# Reusable workflow consumed by governed repos via workflow_call.
+# Runs Foreman v2 or the Independent Assurance Agent in the requested mode
+# and commits governance ceremony artifacts back to the PR branch.
+#
+# Consumers call this workflow like:
+#
+#   uses: APGI-cmy/maturion-codex-control/.github/workflows/iaa-agent-runner.yml@main
+#   with:
+#     mode: pre-brief       # or: final-audit
+#     pr-number: 1136
+#   secrets:
+#     maturion-bot-token: ${{ secrets.MATURION_BOT_TOKEN }}
+
+on:
+  workflow_call:
+    inputs:
+      mode:
+        description: >
+          Agent execution mode.
+          Allowed values: pre-brief | final-audit
+        type: string
+        required: true
+      pr-number:
+        description: Pull request number in the governed (calling) repo.
+        type: number
+        required: true
+      agent-command:
+        description: >
+          Full shell command to invoke the agent runner.
+          Defaults to the MATURION_AGENT_COMMAND env var if not provided here.
+        type: string
+        required: false
+        default: ''
+      allowed-paths:
+        description: >
+          Colon-separated list of path prefixes under which agents may write output.
+        type: string
+        required: false
+        default: '.agent-admin/assurance:.agent-workspace'
+      governed-repo:
+        description: >
+          Full name of the governed repository (owner/repo).
+          Defaults to the calling repository when not provided.
+        type: string
+        required: false
+        default: ''
+    secrets:
+      maturion-bot-token:
+        description: >
+          GitHub token with contents:write permission on the governed repo.
+        required: true
+    outputs:
+      artifacts-committed:
+        description: "'true' if new artifact files were committed; 'false' otherwise."
+        value: ${{ jobs.run-agent.outputs.artifacts-committed }}
+      pr-branch:
+        description: The PR head branch that artifacts were committed to.
+        value: ${{ jobs.run-agent.outputs.pr-branch }}
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  run-agent:
+    name: Run ${{ inputs.mode }} agent for PR #${{ inputs.pr-number }}
+    runs-on: ubuntu-latest
+    outputs:
+      artifacts-committed: ${{ steps.bootstrap.outputs.artifacts-committed }}
+      pr-branch: ${{ steps.bootstrap.outputs.pr-branch }}
+
+    steps:
+      - name: Validate inputs
+        shell: bash
+        run: |
+          MODE="${{ inputs.mode }}"
+          if [[ "$MODE" != "pre-brief" && "$MODE" != "final-audit" ]]; then
+            echo "::error::Invalid mode '$MODE'. Must be one of: pre-brief, final-audit"
+            exit 1
+          fi
+          echo "Mode validated: $MODE"
+
+      - name: Run Maturion Agent Bootstrap
+        id: bootstrap
+        uses: APGI-cmy/maturion-codex-control/templates/agent-bootstrap@main
+        with:
+          mode: ${{ inputs.mode }}
+          pr-number: ${{ inputs.pr-number }}
+          agent-command: ${{ inputs.agent-command }}
+          maturion-bot-token: ${{ secrets.maturion-bot-token }}
+          allowed-paths: ${{ inputs.allowed-paths }}
+        env:
+          GITHUB_REPOSITORY: ${{ inputs.governed-repo != '' && inputs.governed-repo || github.repository }}

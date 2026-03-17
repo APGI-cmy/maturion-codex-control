@@ -1,0 +1,101 @@
+# .github/workflows/maturion-iaa-bootstrap.yml
+#
+# GOVERNED REPO TEMPLATE — copy this file into your governed repo at the
+# path shown above.  No bespoke edits are required for the default setup.
+#
+# Triggers the Maturion IAA agent (or Foreman v2) when specific governance
+# ceremony phrases are posted as PR comments.
+#
+# Trigger phrases (case-sensitive, copy exactly):
+#   Phase 0  — Pre-Brief :  IAA_PRE_BRIEF_PROTOCOL.md §Trigger
+#   Phase 4.3 — Final Audit: IAA_FINAL_AUDIT_PROTOCOL.md §Trigger
+#
+# Required secrets (set under Settings → Secrets and variables → Actions):
+#   MATURION_BOT_TOKEN — fine-grained PAT with contents:write on this repo.
+#
+# Required permissions on this repo's GitHub Actions settings:
+#   Read and write permissions (or at minimum: contents: write).
+
+name: Maturion IAA Bootstrap
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  # ── Detect which phase was triggered ────────────────────────────────────────
+  detect-trigger:
+    name: Detect IAA trigger phrase
+    runs-on: ubuntu-latest
+    # Only run on PR comments (not plain issue comments)
+    if: github.event.issue.pull_request != null
+    outputs:
+      mode: ${{ steps.detect.outputs.mode }}
+      triggered: ${{ steps.detect.outputs.triggered }}
+
+    steps:
+      - name: Inspect comment body
+        id: detect
+        shell: bash
+        env:
+          COMMENT_BODY: ${{ github.event.comment.body }}
+        run: |
+          MODE=""
+          TRIGGERED="false"
+
+          if echo "${COMMENT_BODY}" | grep -qF 'IAA_PRE_BRIEF_PROTOCOL.md §Trigger'; then
+            MODE="pre-brief"
+            TRIGGERED="true"
+          elif echo "${COMMENT_BODY}" | grep -qF 'IAA_FINAL_AUDIT_PROTOCOL.md §Trigger'; then
+            MODE="final-audit"
+            TRIGGERED="true"
+          fi
+
+          echo "mode=${MODE}"       >> "${GITHUB_OUTPUT}"
+          echo "triggered=${TRIGGERED}" >> "${GITHUB_OUTPUT}"
+
+          if [ "${TRIGGERED}" = "true" ]; then
+            echo "Detected trigger for mode: ${MODE}"
+          else
+            echo "No IAA trigger phrase found in comment — skipping."
+          fi
+
+  # ── Phase 0: IAA Pre-Brief ───────────────────────────────────────────────────
+  iaa-pre-brief:
+    name: IAA Pre-Brief (Phase 0)
+    needs: detect-trigger
+    if: needs.detect-trigger.outputs.triggered == 'true' && needs.detect-trigger.outputs.mode == 'pre-brief'
+    uses: APGI-cmy/maturion-codex-control/.github/workflows/iaa-agent-runner.yml@main
+    with:
+      mode: pre-brief
+      pr-number: ${{ github.event.issue.number }}
+      # Set agent-command to the shell command that invokes your agent runner.
+      # Example: "python -m maturion.iaa --mode pre-brief --pr $MATURION_PR_NUMBER"
+      # If left empty the action will fail with an informative error; see README
+      # for details on how to configure via MATURION_AGENT_COMMAND instead.
+      agent-command: ''
+      governed-repo: ${{ github.repository }}
+    secrets:
+      maturion-bot-token: ${{ secrets.MATURION_BOT_TOKEN }}
+
+  # ── Phase 4.3a/b: IAA Final Audit + Token Ceremony ──────────────────────────
+  iaa-final-audit:
+    name: IAA Final Audit + Token Ceremony (Phase 4.3a/b)
+    needs: detect-trigger
+    if: needs.detect-trigger.outputs.triggered == 'true' && needs.detect-trigger.outputs.mode == 'final-audit'
+    uses: APGI-cmy/maturion-codex-control/.github/workflows/iaa-agent-runner.yml@main
+    with:
+      mode: final-audit
+      pr-number: ${{ github.event.issue.number }}
+      # Set agent-command to the shell command that invokes your agent runner.
+      # Example: "python -m maturion.iaa --mode final-audit --pr $MATURION_PR_NUMBER"
+      # If left empty the action will fail with an informative error; see README
+      # for details on how to configure via MATURION_AGENT_COMMAND instead.
+      agent-command: ''
+      governed-repo: ${{ github.repository }}
+    secrets:
+      maturion-bot-token: ${{ secrets.MATURION_BOT_TOKEN }}
