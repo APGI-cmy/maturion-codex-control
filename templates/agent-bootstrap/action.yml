@@ -1,0 +1,92 @@
+name: Maturion Agent Bootstrap
+description: >
+  Composite action that checks out a PR branch, runs a Maturion agent
+  (Foreman v2 or IAA) in a specified mode, and commits new governance
+  ceremony artifacts back to the PR branch.
+
+inputs:
+  mode:
+    description: >
+      Agent execution mode. One of: pre-brief | final-audit
+    required: true
+  pr-number:
+    description: Pull request number (used for checkout and commit target).
+    required: true
+  agent-command:
+    description: >
+      Full shell command to invoke the agent runner.
+      Falls back to the MATURION_AGENT_COMMAND environment variable when omitted.
+    required: false
+    default: ''
+  maturion-bot-token:
+    description: >
+      GitHub token with contents:write permission on the governed repo.
+      Used to commit artifacts back to the PR branch.
+    required: true
+  allowed-paths:
+    description: >
+      Colon-separated list of path prefixes under which agents may write output.
+      Defaults enforce the canonical governance paths.
+    required: false
+    default: '.agent-admin/assurance:.agent-workspace'
+
+outputs:
+  artifacts-committed:
+    description: >
+      'true' if new artifact files were committed to the PR branch; 'false' otherwise.
+    value: ${{ steps.commit.outputs.artifacts-committed }}
+  pr-branch:
+    description: The PR head branch that was checked out and written to.
+    value: ${{ steps.pr-info.outputs.branch }}
+
+runs:
+  using: composite
+  steps:
+    - name: Resolve PR head branch
+      id: pr-info
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.maturion-bot-token }}
+        PR_NUMBER: ${{ inputs.pr-number }}
+      run: |
+        bash "${{ github.action_path }}/scripts/get-pr-info.sh"
+
+    - name: Checkout PR head branch
+      uses: actions/checkout@v4
+      with:
+        token: ${{ inputs.maturion-bot-token }}
+        ref: ${{ steps.pr-info.outputs.branch }}
+        fetch-depth: 0
+
+    - name: Run agent
+      id: run-agent
+      shell: bash
+      env:
+        MATURION_MODE: ${{ inputs.mode }}
+        MATURION_PR_NUMBER: ${{ inputs.pr-number }}
+        MATURION_PR_BRANCH: ${{ steps.pr-info.outputs.branch }}
+        MATURION_BOT_TOKEN: ${{ inputs.maturion-bot-token }}
+        MATURION_AGENT_COMMAND: ${{ inputs.agent-command }}
+      run: |
+        CMD="${MATURION_AGENT_COMMAND:-}"
+        if [ -z "$CMD" ]; then
+          echo "::error::agent-command input is empty and MATURION_AGENT_COMMAND env var is not set."
+          exit 1
+        fi
+        echo "Running agent in mode=${MATURION_MODE} for PR #${MATURION_PR_NUMBER}"
+        # Use 'sh -c' with the command as a single argument to avoid
+        # word-splitting surprises while keeping configurability.
+        # Governed repos are responsible for providing a safe, trusted command.
+        sh -c "$CMD"
+
+    - name: Commit new artifacts to PR branch
+      id: commit
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.maturion-bot-token }}
+        TARGET_BRANCH: ${{ steps.pr-info.outputs.branch }}
+        ALLOWED_PATHS: ${{ inputs.allowed-paths }}
+        MATURION_MODE: ${{ inputs.mode }}
+        MATURION_PR_NUMBER: ${{ inputs.pr-number }}
+      run: |
+        bash "${{ github.action_path }}/scripts/commit-artifacts.sh"
