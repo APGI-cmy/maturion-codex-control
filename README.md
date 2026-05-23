@@ -32,9 +32,12 @@ This repository is **normative, not operative**.
 
 ---
 
-## Codex Visibility Scope (Advisory / Read-Only)
+## Codex Visibility Scope
 
-Codex operates as **CodexAdvisor** and may perform **read-only advisory inspection** of the following repositories, strictly under governance constraints and without execution or modification authority.
+Codex operates as **CodexAdvisor** and may inspect the following repositories.
+When Johan explicitly requests implementation, Codex may assist with local file
+changes while remaining under governance constraints and without approval,
+merge, release, or autonomous execution authority.
 
 ### Governed Repositories
 
@@ -74,18 +77,35 @@ Codex operates as **CodexAdvisor** and may perform **read-only advisory inspecti
 
 ## Codex Authority Model
 
-Codex operates strictly as an **advisory intelligence**.
+Codex operates as **CodexAdvisor**.
 
-- Advisory only  
-- Read-only inspection  
-- No execution  
-- No modification  
-- No approvals  
-- No decisions  
+- Advisory by default
+- Local implementation support when Johan explicitly requests it
+- No autonomous approvals
+- No autonomous merge or release decisions
+- No protected agent contract changes unless Johan acts as CS2
+- No weakening of QA, merge, governance, or evidence gates
 
-All execution authority resides with **Foreman** and governed Builder agents.
+All execution authority remains governed by **Foreman**, Builder agents, and CS2
+authority. Codex may assist with local repository work, but it does not acquire
+Foreman, Builder, governance-liaison, governance-repo-administrator, or CS2
+authority.
 
-Any ambiguity, risk, or uncertainty identified by Codex **must be escalated** according to governance policy.
+Any ambiguity, risk, or uncertainty identified by Codex **must be escalated**
+according to governance policy before governance-sensitive edits continue.
+
+The CodexAdvisor workspace alignment profile is defined in:
+
+- `docs/CODEXADVISOR_ALIGNMENT_PROFILE.md`
+- `docs/JOHAN_WORKING_CONTRACT.md`
+
+CodexAdvisor also follows Johan's one-job assurance pipeline:
+
+`Intent → Specialist Build → QP Review → ECAP Reconciliation → IAA Assurance → CI Confirmation`
+
+The pipeline is risk-scaled. Low-risk work may use a lightweight builder plus QP pass, while
+protected-path, governance, workflow, agent, schema, migration, or CI-related work requires
+ECAP before IAA unless CS2 grants a waiver.
 
 ---
 
@@ -95,6 +115,7 @@ Any ambiguity, risk, or uncertainty identified by Codex **must be escalated** ac
 - This repository **does not recruit agents**
 - This repository **does not define agent identity**
 - This repository defines **usage rules**, not agent behavior
+- Consumer repo `.agent` files are local role bindings, not canonical governance authority
 
 ---
 
